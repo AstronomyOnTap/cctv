@@ -1,20 +1,37 @@
 #!/usr/bin/env python
+import sys
 
-import speech_recognition as sr
+def transcribe_model_selection(speech_file, model):
+    """Transcribe the given audio file synchronously with
+    the selected model."""
+    from google.cloud import speech_v1p1beta1 as speech
+    client = speech.SpeechClient()
 
-# obtain path to "english.wav" in the same folder as this script
-from os import path
-AUDIO_FILE = "Evan.wav"
+    with open(speech_file, 'rb') as audio_file:
+        content = audio_file.read()
 
-# use the audio file as the audio source
-r = sr.Recognizer()
-with sr.AudioFile(AUDIO_FILE) as source:
-    audio = r.record(source)  # read the entire audio file
+    audio = speech.types.RecognitionAudio(content=content)
 
-# recognize speech using Sphinx
-try:
-    print("Sphinx thinks you said " + r.recognize_sphinx(audio))
-except sr.UnknownValueError:
-    print("Sphinx could not understand audio")
-except sr.RequestError as e:
-    print("Sphinx error; {0}".format(e))
+    config = speech.types.RecognitionConfig(
+        encoding=speech.enums.RecognitionConfig.AudioEncoding.LINEAR16,
+        sample_rate_hertz=16000,
+        language_code='en-US',
+        model=model)
+
+    response = client.recognize(config, audio)
+
+    for i, result in enumerate(response.results):
+        alternative = result.alternatives[0]
+        print('-' * 20)
+        print('First alternative of result {}'.format(i))
+        print(u'Transcript: {}'.format(alternative.transcript))
+
+def main():
+    AUDIO_FILE = "gil_veryshort.wav"
+    transcribe_model_selection(AUDIO_FILE, 'video')
+
+
+
+if __name__=='__main__':
+    sys.exit(main())
+
